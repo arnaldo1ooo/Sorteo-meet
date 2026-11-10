@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorteo</title>
+<link rel="stylesheet" href="sorteo.css">
+</head>
+<body>
+<main>
+
+  <!-- ===== Vista principal ===== -->
+  <section id="view-main" aria-labelledby="title">
+
+    <div id="tip" class="tip" role="note" hidden>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg>
+      <span>Para que todos lo vean: en Meet tocá <b>Presentar ahora</b>, elegí <b>Una ventana</b> y seleccioná «Sorteo».</span>
+      <button id="tip-close" type="button" class="icon-btn small" aria-label="Cerrar aviso">✕</button>
+    </div>
+
+    <div class="head">
+      <h1 id="title"></h1>
+      <button id="btn-settings" type="button" class="icon-btn" aria-label="Configuración">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      </button>
+    </div>
+
+    <div id="controls">
+      <div class="stage-row">
+
+        <div class="stage">
+          <!-- Ruleta -->
+          <div id="wheel-box" class="wheel-box">
+            <svg class="pointer" width="30" height="38" viewBox="0 0 30 38" aria-hidden="true"><polygon points="3,3 27,3 15,34" fill="#f59e0b" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"></polygon></svg>
+            <canvas id="wheel" width="300" height="300" role="img" aria-label="Ruleta con los participantes"></canvas>
+          </div>
+          <!-- Tragamonedas -->
+          <div id="slot-box" class="slot-box" hidden>
+            <div class="slot-frame">
+              <div class="slot-lights" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="slot-window" role="img" aria-label="Carrete con los nombres de los participantes">
+                <div class="slot-band" aria-hidden="true"></div>
+                <div id="slot-strip" class="slot-strip"></div>
+                <div class="slot-fade" aria-hidden="true"></div>
+                <div class="slot-mark" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div id="lever" class="lever" aria-hidden="true"><span class="lever-rod"></span><span class="lever-ball"></span></div>
+          </div>
+        </div>
+
+        <div class="people-col">
+          <div class="people-head">
+            <h2>En la reunión ahora</h2>
+            <span id="people-count" class="muted"></span>
+          </div>
+          <ul id="people" class="people" aria-label="Participantes"></ul>
+          <p id="people-empty" class="muted" hidden>Todavía no hay participantes. Tocá «Actualizar» o agregalos a mano.</p>
+          <div class="people-actions">
+            <button id="btn-refresh" type="button" class="btn btn-small btn-secondary">Actualizar</button>
+            <form id="manual-form" class="manual-form" autocomplete="off">
+              <label for="manual-name" class="sr-only">Agregar un nombre a mano</label>
+              <input id="manual-name" type="text" maxlength="60" placeholder="Agregar a mano">
+              <button type="submit" class="btn btn-small btn-secondary">Agregar</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="winners-row">
+        <label for="winners">Cantidad de ganadores</label>
+        <button id="w-minus" type="button" class="round-btn" aria-label="Menos ganadores">−</button>
+        <input id="winners" type="number" min="1" step="1" inputmode="numeric">
+        <button id="w-plus" type="button" class="round-btn" aria-label="Más ganadores">+</button>
+        <span id="winners-max" class="muted"></span>
+      </div>
+
+      <button id="btn-spin" type="button" class="btn btn-primary btn-big">Girar la ruleta</button>
+    </div>
+
+    <div id="progress" class="progress" hidden aria-live="polite">
+      <p id="progress-now" class="progress-now"></p>
+      <ol id="progress-list" class="progress-list"></ol>
+    </div>
+
+    <div class="status-box" role="status" aria-live="polite">
+      <span id="status"></span>
+      <button id="status-action" type="button" class="link-btn" hidden></button>
+    </div>
+  </section>
+
+  <!-- ===== Configuración ===== -->
+  <section id="view-settings" aria-labelledby="settings-title" hidden>
+    <div class="head head-back">
+      <button id="btn-settings-back" type="button" class="icon-btn" aria-label="Volver">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+      </button>
+      <h1 id="settings-title">Configuración</h1>
+    </div>
+
+    <div class="field">
+      <label for="set-title" class="field-label">Título del sorteo</label>
+      <input id="set-title" type="text" maxlength="80" class="text-input strong">
+      <div class="chips" id="title-chips">
+        <button type="button" class="chip">¿A quién le toca?</button>
+        <button type="button" class="chip">¿Quién presenta la reunión?</button>
+        <button type="button" class="chip">¿Quién toma notas?</button>
+        <button type="button" class="chip">¿Quién trae el café?</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="set-winners" class="field-label">Cantidad de ganadores</label>
+      <div class="winners-inline">
+        <button id="sw-minus" type="button" class="round-btn big" aria-label="Menos ganadores">−</button>
+        <input id="set-winners" type="number" min="1" max="100" step="1" inputmode="numeric" class="num-input">
+        <button id="sw-plus" type="button" class="round-btn big" aria-label="Más ganadores">+</button>
+        <span class="muted">Escribí el número o usá los botones. Máximo: la cantidad de personas en la reunión.</span>
+      </div>
+      <div id="place-names" class="place-names"></div>
+    </div>
+
+    <div class="field">
+      <label for="set-theme" class="field-label">Apariencia</label>
+      <select id="set-theme" class="text-input select-input">
+        <option value="auto">Automática (según tu sistema)</option>
+        <option value="light">Clara</option>
+        <option value="dark">Oscura</option>
+      </select>
+    </div>
+
+    <div class="field options">
+      <div class="option">
+        <input id="set-norepeat" type="checkbox">
+        <div class="option-text">
+          <label for="set-norepeat">No repetir ganadores anteriores</label>
+          <p class="muted small">Quien ya ganó en sorteos anteriores queda fuera. Desactivado por defecto.</p>
+        </div>
+        <button id="btn-clear-history" type="button" class="btn btn-small btn-secondary">Borrar historial</button>
+      </div>
+      <div class="option">
+        <input id="set-barbutton" type="checkbox">
+        <div class="option-text">
+          <label for="set-barbutton">Mostrar el botón «Sorteo» en la barra de Meet</label>
+          <p class="muted small">Un clic abre el sorteo. Si lo desactivás, se abre con el ícono de la extensión.</p>
+        </div>
+      </div>
+      <div class="option">
+        <input id="set-announce" type="checkbox">
+        <div class="option-text">
+          <label for="set-announce">Anunciar en el chat al terminar</label>
+          <p class="muted small">Escribe el resultado solo, sin tocar «Anunciar en el chat».</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button id="btn-settings-cancel" type="button" class="btn btn-secondary">Cancelar</button>
+      <button id="btn-settings-save" type="button" class="btn btn-primary">Guardar</button>
+    </div>
+    <p id="settings-status" class="status-box" role="status" aria-live="polite"></p>
+  </section>
+
+  <!-- ===== Resultado ===== -->
+  <section id="view-result" aria-labelledby="result-title" hidden>
+    <div class="head"><h1 id="result-title"></h1></div>
+    <div id="result-body" class="result-body"></div>
+    <div class="btn-row">
+      <button id="btn-announce" type="button" class="btn btn-primary">Anunciar en el chat</button>
+      <button id="btn-again" type="button" class="btn btn-secondary">Girar otra vez</button>
+    </div>
+    <p id="chat-preview" class="muted center small"></p>
+    <p id="result-status" class="status-box center" role="status" aria-live="polite"></p>
+    <div class="center"><button id="btn-back" type="button" class="link-btn">Volver</button></div>
+  </section>
+
+</main>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<script src="lib.js"></script>
+<script src="sorteo.js"></script>
+</body>
+</html>
