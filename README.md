@@ -12,7 +12,7 @@ Extensión de Chrome (también funciona en Edge) para sortear entre las personas
 ## Cómo se usa
 
 1. Entrá a tu reunión en `meet.google.com`.
-2. Tocá el botón **Sorteo** (el círculo violeta con un dado) de la barra de abajo de Meet, junto a «Presentar ahora». También podés usar el ícono de la extensión. Se abre la ventana del **Sorteo** y trae automáticamente a los que están en la reunión.
+2. En Meet, tocá los **tres puntos** (Más opciones) y elegí **Sorteo**. También podés usar el ícono de la extensión (rompecabezas de la barra de Chrome → «Sorteo para Meet»; conviene fijarlo con el alfiler). Se abre la ventana del **Sorteo** y trae automáticamente a los que están en la reunión.
 3. **Para que todos lo vean**, en Meet tocá **Presentar ahora → Una ventana** y elegí la ventana «Sorteo». Si no presentás la ventana, solo lo ves vos.
 4. Tocá **Girar la ruleta** (o **Tirar de la palanca** si hay más de 8 personas).
 5. Tocá **Anunciar en el chat** para que el resultado quede escrito en la reunión. El chat queda abierto y el botón se bloquea («Anunciado ✓») para no anunciar dos veces; con un sorteo nuevo se habilita otra vez.
@@ -29,7 +29,8 @@ Cada persona de la lista tiene un casillero: desmarcá a quien no participa (por
 | Cantidad de ganadores | Un número que escribís vos. Cada puesto tiene su nombre editable («Primer lugar», «Presenta», «Suplente»…). |
 | No repetir ganadores anteriores | Desactivado por defecto. Quien ya ganó queda fuera hasta que borres el historial. |
 | Apariencia | Automática (sigue el modo claro/oscuro de tu sistema), Clara u Oscura. Se ve al instante y se guarda con «Guardar». |
-| Mostrar el botón «Sorteo» en la barra de Meet | Activado por defecto. Si te molesta, desactivalo y abrí el sorteo con el ícono de la extensión. |
+| Mostrar «Sorteo» en el menú de tres puntos de Meet | Activado por defecto. Agrega la opción «Sorteo» al menú «Más opciones» de la reunión. |
+| Mostrar el botón «Sorteo» en la barra de Meet (experimental) | Desactivado por defecto. Si lo activás y Meet se queda sin lugar en la barra (por ejemplo, si se esconde «Presentar ahora»), el botón se quita solo y vuelve a quedar desactivado. |
 | Anunciar en el chat al terminar | Desactivado por defecto. Escribe el resultado solo. |
 
 Con varios ganadores, la ruleta (o la tragamonedas) gira una vez por puesto, y quien sale queda fuera del giro siguiente: nadie gana dos puestos.
@@ -48,7 +49,8 @@ Meet cambia su pantalla seguido y la extensión no tiene una API oficial para le
 
 - **No trae a los participantes:** abrí el panel **Personas** de Meet y tocá **Actualizar**. Si no alcanza, agregalos a mano; el resto del sorteo funciona igual.
 - **No puede escribir en el chat:** el chat de Meet es un marco de Google Chat (`chat.google.com`); por eso la extensión pide permiso sobre ese sitio, solo dentro de Meet.  copia el mensaje al portapapeles; pegalo con Ctrl+V.
-- **No aparece el botón en la barra:** Meet cambia su diseño y el botón se ubica de forma aproximada. Recargá la pestaña; si sigue sin verse, usá el ícono de la extensión (siempre funciona). Revisá también que esté activado en Configuración.
+- **No aparece «Sorteo» en el menú de tres puntos:** Meet cambia su diseño y la opción se ubica de forma aproximada. Recargá la pestaña; si sigue sin verse, usá el ícono de la extensión (siempre funciona) y revisá que esté activada en Configuración.
+- **No aparece el botón en la barra:** es opcional y viene desactivado; se activa en Configuración.  Meet cambia su diseño y el botón se ubica de forma aproximada. Recargá la pestaña; si sigue sin verse, usá el ícono de la extensión (siempre funciona). Revisá también que esté activado en Configuración.
 - **Instalaste la extensión con la reunión ya abierta:** tocá el ícono una vez (la extensión se conecta sola) o recargá la pestaña de Meet.
 - **«No pude conectar con la pestaña de Meet»:** recargá Meet (F5) y volvé a abrir el sorteo.
 

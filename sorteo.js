@@ -18,7 +18,8 @@
     placeNames: [],
     noRepeat: false,
     autoAnnounce: false,
-    showBarButton: true,
+    showBarButtonV2: false,
+    showMenuItem: true,
     theme: 'auto',
     hideTip: false,
     history: []
@@ -687,7 +688,8 @@
     renderPlaceInputs(s.winners, s.placeNames);
     $('set-norepeat').checked = s.noRepeat;
     $('set-announce').checked = s.autoAnnounce;
-    $('set-barbutton').checked = s.showBarButton !== false;
+    $('set-barbutton').checked = s.showBarButtonV2 === true;
+    $('set-menuitem').checked = s.showMenuItem !== false;
     $('set-theme').value = ['auto', 'light', 'dark'].includes(s.theme) ? s.theme : 'auto';
     $('settings-status').textContent = '';
     resetClearButton();
@@ -712,7 +714,8 @@
     state.settings.placeNames = places;
     state.settings.noRepeat = $('set-norepeat').checked;
     state.settings.autoAnnounce = $('set-announce').checked;
-    state.settings.showBarButton = $('set-barbutton').checked;
+    state.settings.showBarButtonV2 = $('set-barbutton').checked;
+    state.settings.showMenuItem = $('set-menuitem').checked;
     state.settings.theme = $('set-theme').value;
     saveSettings();
     applyTitle();

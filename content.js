@@ -312,7 +312,7 @@
   const BAR_ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="9" cy="9" r="1" fill="#ffffff"></circle><circle cx="15" cy="9" r="1" fill="#ffffff"></circle><circle cx="12" cy="12" r="1" fill="#ffffff"></circle><circle cx="9" cy="15" r="1" fill="#ffffff"></circle><circle cx="15" cy="15" r="1" fill="#ffffff"></circle></svg>';
 
   let barHost = null;
-  let barEnabled = true;
+  let barEnabled = false; // opcional: se activa en Configuración
 
   function buildBarButton() {
     const host = document.createElement('div');
@@ -368,8 +368,39 @@
     if (barHost) barHost.remove();
   }
 
+  // ¿Se ve este control? (con tamaño, dentro de la pantalla y sin ocultar)
+  function shown(el) {
+    if (!el || !el.isConnected) return false;
+    const r = el.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) return false;
+    if (r.right > window.innerWidth + 1 || r.left < -1 || r.bottom > window.innerHeight + 1) return false;
+    const cs = getComputedStyle(el);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && cs.opacity !== '0';
+  }
+
+  let barGuardTripped = false;
+
+  // Protección: si al insertar el botón Meet deja de mostrar algún control que se veía
+  // (p. ej. «Presentar ahora», porque la barra se queda sin lugar), lo quitamos y
+  // lo apagamos para que no vuelva a molestar.
+  function guardBar(parent, before) {
+    setTimeout(() => {
+      if (!barHost || !barHost.isConnected) return;
+      const lost = before.filter((el) => !shown(el));
+      if (!lost.length) return;
+      barGuardTripped = true;
+      removeBarButton();
+      try {
+        chrome.storage.local.get('sorteo').then((r) => {
+          const v = Object.assign({}, r && r.sorteo, { showBarButtonV2: false });
+          return chrome.storage.local.set({ sorteo: v });
+        }).catch(() => {});
+      } catch (e) { /* sin almacenamiento */ }
+    }, 600);
+  }
+
   function ensureBarButton() {
-    if (!barEnabled) { removeBarButton(); return; }
+    if (!barEnabled || barGuardTripped) { removeBarButton(); return; }
     if (barHost && barHost.isConnected) return;
     for (const anchor of BAR_ANCHORS) {
       const btn = findByLabel(anchor.re);
@@ -378,7 +409,9 @@
       const parent = item.parentElement;
       if (!parent) continue;
       if (!barHost) barHost = buildBarButton();
+      const before = Array.from(parent.children).filter(shown);
       parent.insertBefore(barHost, anchor.where === 'after' ? item.nextSibling : item);
+      guardBar(parent, before);
       return;
     }
   }
@@ -386,7 +419,7 @@
   async function loadBarPref() {
     try {
       const r = await chrome.storage.local.get('sorteo');
-      barEnabled = !(r && r.sorteo && r.sorteo.showBarButton === false);
+      barEnabled = !!(r && r.sorteo && r.sorteo.showBarButtonV2 === true);
     } catch (e) { /* sin almacenamiento: queda activado */ }
   }
 
@@ -402,13 +435,155 @@
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area !== 'local' || !changes.sorteo) return;
         const v = changes.sorteo.newValue;
-        barEnabled = !(v && v.showBarButton === false);
+        barEnabled = !!(v && v.showBarButtonV2 === true);
+        if (barEnabled) barGuardTripped = false; // si lo vuelven a activar, se prueba de nuevo
         ensureBarButton();
       });
     } catch (e) { /* sin onChanged */ }
   }
 
   startBarButton();
+
+  // ---------- «Sorteo» en el menú de tres puntos ----------
+  // Se suma como una opción más de la lista (no ocupa lugar en la barra, así que no
+  // puede desplazar otros controles). Se copia el estilo de una opción existente.
+
+  const MENU_ITEM_SEL = '[role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], li';
+  const MENU_KEYS = /(ajustar vista|pantalla completa|fondos y efectos|informar un problema|denunciar abuso|transmitir esta reuni|change layout|full screen|backgrounds and effects|report a problem|report abuse|cast this meeting)/i;
+  const MENU_BEFORE = /(informar un problema|report a problem|denunciar abuso|report abuse|soluci[oó]n de problemas|troubleshooting)/i;
+  const MENU_TEMPLATE = /(fondos y efectos|pantalla completa|ajustar vista|backgrounds and effects|full screen|change layout)/i;
+  const MENU_MARK = 'data-sorteo-menu-item';
+  const MENU_ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="9" cy="9" r="1" fill="currentColor"></circle><circle cx="15" cy="9" r="1" fill="currentColor"></circle><circle cx="12" cy="12" r="1" fill="currentColor"></circle><circle cx="9" cy="15" r="1" fill="currentColor"></circle><circle cx="15" cy="15" r="1" fill="currentColor"></circle></svg>';
+  let menuEnabled = true;
+
+  const textOf = (el) => (el.textContent || '').replace(/\s+/g, ' ').trim();
+
+  // El «elemento» de una opción es el ancestro más alto (dentro del menú) que contiene solo esa opción.
+  function menuWrap(menu, item) {
+    let w = item;
+    while (w.parentElement && w.parentElement !== menu && w.parentElement.querySelectorAll(MENU_ITEM_SEL).length === 1) w = w.parentElement;
+    return w;
+  }
+
+  function isSeparator(el) {
+    return el.getAttribute('role') === 'separator' || el.tagName === 'HR' || /divider|separator/i.test(String(el.className || ''));
+  }
+
+  function closeMenuNow() {
+    const target = document.activeElement || document.body;
+    ['keydown', 'keyup'].forEach((type) => {
+      target.dispatchEvent(new KeyboardEvent(type, { key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true }));
+    });
+  }
+
+  function openFromMenu(e) {
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    closeMenuNow();
+    try { chrome.runtime.sendMessage({ type: 'sorteo:open' }); } catch (err) { /* extensión recargada */ }
+  }
+
+  function buildMenuItem(templateWrap) {
+    const clone = templateWrap.cloneNode(true);
+    // Fuera todo lo que hace que Meet trate la copia como la opción original.
+    [clone].concat(Array.from(clone.querySelectorAll('*'))).forEach((el) => {
+      Array.from(el.attributes).forEach((a) => {
+        if (/^(js|data-|id$|aria-disabled|aria-checked|aria-selected|aria-describedby|aria-labelledby|aria-label$|tabindex$|href$)/i.test(a.name)) el.removeAttribute(a.name);
+      });
+    });
+    clone.setAttribute(MENU_MARK, '1');
+    const ti = clone.matches(MENU_ITEM_SEL) ? clone : clone.querySelector(MENU_ITEM_SEL);
+    (ti || clone).setAttribute('tabindex', '0');
+
+    // Texto: la hoja con más texto pasa a «Sorteo»; se quitan otras hojas de texto (subtítulos).
+    const leaves = Array.from(clone.querySelectorAll('*')).filter((el) => el.children.length === 0 && textOf(el));
+    const texts = leaves.filter((el) => !isIconText(el, textOf(el)));
+    texts.sort((a, b) => textOf(b).length - textOf(a).length);
+    if (texts.length) {
+      texts[0].textContent = 'Sorteo';
+      texts.slice(1).forEach((el) => el.remove());
+    } else {
+      clone.appendChild(document.createTextNode('Sorteo'));
+    }
+
+    // Ícono: se reemplaza el de la opción copiada; si no hay, se agrega al principio.
+    const old = clone.querySelector('svg') || leaves.find((el) => isIconText(el, textOf(el)));
+    const tpl = document.createElement('template');
+    tpl.innerHTML = MENU_ICON;
+    const icon = tpl.content.firstChild;
+    if (old) {
+      const size = (old.getAttribute && (old.getAttribute('width') || '')) || '';
+      if (size) { icon.setAttribute('width', size); icon.setAttribute('height', old.getAttribute('height') || size); }
+      old.replaceWith(icon);
+    } else {
+      clone.insertBefore(icon, clone.firstChild);
+    }
+
+    clone.addEventListener('click', openFromMenu, true);
+    clone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openFromMenu(e); }, true);
+    clone.style.cursor = 'pointer';
+    return clone;
+  }
+
+  function injectMenuItem(menu) {
+    if (menu.querySelector('[' + MENU_MARK + ']')) return;
+    const items = Array.from(menu.querySelectorAll(MENU_ITEM_SEL)).filter((el) => !el.querySelector(MENU_ITEM_SEL));
+    if (items.filter((el) => MENU_KEYS.test(textOf(el))).length < 2) return; // no es el menú «Más opciones»
+    const template = items.find((el) => MENU_TEMPLATE.test(textOf(el)) && el.getAttribute('aria-disabled') !== 'true');
+    if (!template) return;
+    const tWrap = menuWrap(menu, template);
+    const report = items.find((el) => MENU_BEFORE.test(textOf(el)));
+    const item = buildMenuItem(tWrap);
+
+    if (report) {
+      const rWrap = menuWrap(menu, report);
+      let ref = rWrap;
+      // Al final del grupo anterior: justo antes del separador que precede a «Informar un problema».
+      for (let sib = rWrap.previousElementSibling; sib; sib = sib.previousElementSibling) {
+        if (isSeparator(sib)) { ref = sib; break; }
+        if (menuWrap(menu, sib) !== sib && !sib.matches(MENU_ITEM_SEL)) break;
+      }
+      ref.parentElement.insertBefore(item, ref);
+    } else {
+      tWrap.parentElement.insertBefore(item, tWrap.nextSibling);
+    }
+  }
+
+  function removeMenuItems() {
+    document.querySelectorAll('[' + MENU_MARK + ']').forEach((el) => el.remove());
+  }
+
+  function scanMenus() {
+    if (!menuEnabled) { removeMenuItems(); return; }
+    document.querySelectorAll('[role="menu"]').forEach((menu) => {
+      try { injectMenuItem(menu); } catch (e) { /* el menú de Meet cambió: no molestamos */ }
+    });
+  }
+
+  async function loadMenuPref() {
+    try {
+      const r = await chrome.storage.local.get('sorteo');
+      menuEnabled = !(r && r.sorteo && r.sorteo.showMenuItem === false);
+    } catch (e) { /* sin almacenamiento: queda activado */ }
+  }
+
+  function startMenuItem() {
+    loadMenuPref().then(scanMenus);
+    let timer = null;
+    new MutationObserver(() => {
+      if (timer) return;
+      timer = setTimeout(() => { timer = null; scanMenus(); }, 120);
+    }).observe(document.body, { childList: true, subtree: true });
+    try {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'local' || !changes.sorteo) return;
+        const v = changes.sorteo.newValue;
+        menuEnabled = !(v && v.showMenuItem === false);
+        scanMenus();
+      });
+    } catch (e) { /* sin onChanged */ }
+  }
+
+  startMenuItem();
 
   // ---------- Mensajes desde la ventana del sorteo ----------
 
